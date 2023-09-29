@@ -7,6 +7,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>中国語クイズ</title>
   <style>
+    * {
+      font-size: 20px;
+    }
+
     .header {
       position: fixed;
       top: 0px;
@@ -17,9 +21,10 @@
 
 
     }
+
     .header p {
       padding-left: 100px;
-     
+
     }
 
 
@@ -68,6 +73,12 @@
       margin-right: 10px;
     }
 
+    .hanyu {
+      display: block;
+      font-weight: bold;
+
+    }
+
     .hanyuDisplay {
       display: block;
       font-weight: bold;
@@ -103,9 +114,13 @@
       display: none;
     }
 
+    #comment {
+      font-size: 32px;
+    }
+
     #check-next {
       background-color: cyan;
-      border-radius: 20%;
+      border-radius: 8px;
       width: 100px;
       height: 40px;
       text-align: center;
@@ -113,6 +128,16 @@
       cursor: pointer;
       user-select: none;
       margin-left: 40px;
+      box-shadow: 0 4px #7a0000;
+    }
+
+    #check-next:hover {
+      opacity: 0.8;
+    }
+
+    #check-next:active {
+      box-shadow: 0 1px #7a0000;
+      transform: translateY(3px);
     }
 
     .divSpeak {
@@ -125,6 +150,58 @@
       margin-bottom: 20px;
       cursor: pointer;
       user-select: none;
+
+    }
+
+    .totalGrade {
+      padding-left: 30px;
+      padding-top: 120px;
+      display: block;
+      animation: 03s fadeIn;
+    }
+
+    .totalGradeDisplay {
+      display: block;
+    }
+
+    .totalGradeNoDisplay {
+      display: none;
+    }
+
+    #reTry {
+      background-color: pink;
+      border-radius: 8px;
+      width: 400px;
+      height: 40px;
+      text-align: center;
+      line-height: 40px;
+      cursor: pointer;
+      user-select: none;
+      margin-top: 30px;
+      box-shadow: 0 4px #7a0000;
+
+    }
+
+    #reTry:hover {
+      opacity: 0.8;
+    }
+
+    #reTry:active {
+      box-shadow: 0 1px #7a0000;
+      transform: translateY(3px);
+    }
+
+    @keyframes fadeIn {
+      0% {
+        opacity: 0;
+        transform: translateY(-10px);
+
+      }
+
+      100% {
+        opacity: 1;
+        transform: none;
+      }
 
     }
   </style>
@@ -168,7 +245,7 @@
     <div id="container">
 
     </div>
-    
+
 
   </div>
   <!-- <script src="https://code.jquery.com/jquery-3.5.1.min.js"
@@ -211,6 +288,7 @@
     let container;
     let checknext;
     let comment;
+    let seikaiSu;    // シートごとの正解数
     main = document.getElementById('main');
     container = document.getElementById('container');
     // document.addEventListener('DOMContentLoaded', function () {
@@ -232,19 +310,21 @@
     }
     function speakDataX(param1, param2) {
 
-
+      const quizPattern = questions[cssIndex][0];
       const td = param1;
       let answerGroup = document.querySelectorAll('.answer');;
       let questionGroup = document.querySelectorAll('.question');;
       let answerSpans = answerGroup[cssIndex];
       let questionSpans = questionGroup[cssIndex];
       let sheetDatas;
+      if (quizPattern !== 'E') {
+        var uttr = new SpeechSynthesisUtterance(td.textContent);
+        uttr.lang = "zh-CN"
+        uttr.rate = speakSpeedRate();
+        speechSynthesis.cancel();
+        speechSynthesis.speak(uttr);
 
-      var uttr = new SpeechSynthesisUtterance(td.textContent);
-      uttr.lang = "zh-CN"
-      uttr.rate = speakSpeedRate();
-      speechSynthesis.cancel();
-      speechSynthesis.speak(uttr);
+      }
       if (param1.parentElement.classList.contains('answer')) {
         questionSpans.appendChild(param1);
 
@@ -312,7 +392,7 @@
     }
 
 
-   
+
 
     const sheetSelector = document.getElementById("sheet-select");
 
@@ -364,6 +444,7 @@
     }
     function renderQuestions(questions) {
       questions.forEach((question) => {
+        question_Shuffle(question);
         if (question[0] === 'A') {
           renderA_Question(question);
         } else if (question[0] === 'B') {
@@ -375,12 +456,16 @@
         } else if (question[0] === 'D') {
           renderD_Question(question);
 
+
+        } else if (question[0] === 'E') {
+          renderE_Question(question);
+
         }
 
 
 
       });
-      
+
       comment = document.createElement('p');
       comment.setAttribute('id', 'comment');
       container.appendChild(comment);
@@ -389,11 +474,54 @@
       checknext.setAttribute('onclick', 'checkNext()');
       checknext.textContent = 'チェック';
       container.appendChild(checknext);
-      
+      //
+      seikaiSu = 0;
+      let divGrade = document.createElement('div');
+      divGrade.setAttribute('class', 'totalGrade totalGradeNoDisplay');
+      container.appendChild(divGrade);
+      let div = document.createElement('div');
+      div.textContent = `全問題数${questions.length - 1}問中で`;
+      divGrade.appendChild(div);
+
+
+
+
 
     }
 
+    function question_Shuffle(question) {
+      //
+      const shuffleArray = (array) => {
+        const cloneArray = [...array]
 
+        for (let i = cloneArray.length - 1; i >= 0; i--) {
+          let rand = Math.floor(Math.random() * (i + 1))
+          // 配列の要素の順番を入れ替える
+          let tmpStorage = cloneArray[i]
+          cloneArray[i] = cloneArray[rand]
+          cloneArray[rand] = tmpStorage
+        }
+
+        return cloneArray
+      }
+      //
+      let i = 0;
+      let inTab = [];
+      let outTab = [];
+      for (i = 0; i < question.length; i++) {
+        if (question[4 + i] == '') {
+          break;
+        }
+        inTab[i] = question[4 + i];
+      }
+      outTab = shuffleArray(inTab);
+      for (i = 0; i < outTab.length; i++) {
+        question[4 + i] = outTab[i];
+      }
+      
+
+
+    }
 
 
 
@@ -446,7 +574,7 @@
           span = document.createElement('span');
           span.textContent = question[i];
           span.setAttribute('onclick', 'speakDataX(this)')
-          span.setAttribute('onmousedown', 'speakData(this)')
+          // span.setAttribute('onmousedown', 'speakData(this)')
           div.appendChild(span);
 
         }
@@ -511,7 +639,7 @@
           span = document.createElement('span');
           span.textContent = question[i];
           span.setAttribute('onclick', 'speakDataX(this)')
-          span.setAttribute('onmousedown', 'speakData(this)')
+          // span.setAttribute('onmousedown', 'speakData(this)')
           div.appendChild(span);
 
         }
@@ -572,7 +700,7 @@
         if (question[i] !== '') {
           span = document.createElement('span');
           span.textContent = question[i];
-  
+
           div.appendChild(span);
 
         }
@@ -638,7 +766,64 @@
           span = document.createElement('span');
           span.textContent = question[i];
           span.setAttribute('onclick', 'speakDataX(this)')
-          span.setAttribute('onmousedown', 'speakData(this)')
+          // span.setAttribute('onmousedown', 'speakData(this)')
+          div.appendChild(span);
+
+        }
+
+      }
+
+
+    }
+    function renderE_Question(question) {
+      // const container = document.getElementById('container');
+      container = document.getElementById('container');
+      let div, p, span, divContent;
+      divContent = document.createElement('dir');
+      divContent.setAttribute('class', 'dataContent');
+      container.appendChild(divContent);
+      //
+      div = document.createElement('div');
+
+      div.setAttribute('class', 'input inputNodisplay');
+      divContent.appendChild(div);
+      //
+      p = document.createElement('p');
+      p.textContent = question[2];
+      p.setAttribute('class', 'pinyin pinyinNoDisplay');
+      divContent.appendChild(p);
+      //
+      p = document.createElement('p');
+      p.textContent = question[1];
+      p.setAttribute('class', 'hanyu');
+      p.setAttribute('onclick', 'speakData(this)');
+      divContent.appendChild(p);
+      //
+      p = document.createElement('p');
+      p.textContent = question[3];
+      p.setAttribute('class', 'japanese japaneseNoDisplay');
+      divContent.appendChild(p);
+      // 
+      div = document.createElement('div');
+      div.setAttribute('class', 'answer member connectedSortable');
+      divContent.appendChild(div);
+      span = document.createElement('span');
+      span.textContent = '回答：　';
+      div.appendChild(span);
+      // 
+      div = document.createElement('div');
+      div.setAttribute('class', 'question member connectedSortable');
+      divContent.appendChild(div);
+      span = document.createElement('span');
+      span.textContent = '問題：　';
+      div.appendChild(span);
+      let i;
+      for (i = 4; i < question.length; i++) {
+        if (question[i] !== '') {
+          span = document.createElement('span');
+          span.textContent = question[i];
+          span.setAttribute('onclick', 'speakDataX(this)')
+          // span.setAttribute('onmousedown', 'speakData(this)')
           div.appendChild(span);
 
         }
@@ -662,7 +847,21 @@
         var classElement = document.getElementsByClassName('dataContent');
         cssIndex++;
         if (cssIndex === classElement.length) {
+          iniCSSSet2();
+          const totalGrade = document.querySelector('.totalGrade');
+          totalGrade.classList.add('totalGradeDisplay');
+          totalGrade.classList.remove('totalGradeNoDisplay');
+          let div = document.createElement('div');
+          div.textContent = `正答数は${seikaiSu}でした。`;
+          totalGrade.appendChild(div);
+          div = document.createElement('div');
+          div.setAttribute('id', 'reTry');
+          div.setAttribute('onclick', 'setReTry()');
+          div.textContent = 'クリックすれば最初から再度挑戦できます。';
+          totalGrade.appendChild(div);
+
           cssIndex = 0;
+          return;
         }
 
         for (let i = 0; i < classElement.length; i++) {
@@ -696,8 +895,10 @@
         const comment = document.getElementById('comment');
         const hanyuGroup = document.querySelectorAll('.hanyu');
         const pinyinGroup = document.querySelectorAll('.pinyin');
-        hanyuGroup[cssIndex].classList.add('hanyuDisplay');
-        hanyuGroup[cssIndex].classList.remove('hanyuNoDisplay');
+        if (questions[cssIndex][0] !== 'E') {
+          hanyuGroup[cssIndex].classList.add('hanyuDisplay');
+          hanyuGroup[cssIndex].classList.remove('hanyuNoDisplay');
+        }
         if (questions[cssIndex][0] !== 'D') {
           pinyinGroup[cssIndex].classList.add('pinyinDisplay');
           pinyinGroup[cssIndex].classList.remove('pinyinNoDisplay');
@@ -717,11 +918,13 @@
           const inputGroup = document.querySelectorAll('.input');
           let inputHanyu = inputGroup[cssIndex];
           if (inputHanyu.value === hanyu) {
+            seikaiSu++;
             comment.textContent = '好！赞👍';
           } else {
-            comment.textContent = '错×　再加油！！';
+            comment.textContent = '错！　再加油！！';
 
           }
+          speakData(comment);
 
         } else {
           const answers = document.querySelectorAll('.answer');
@@ -735,38 +938,45 @@
 
           }
           console.log(answerString);
+          let correctAnswer;
+          if (questions[cssIndex][0] === 'E') {
+            correctAnswer = pinyin;
 
-
-          if (answerString === hanyu) {
-
-            comment.textContent = '好！赞👍';
-            console.log('OK');
           } else {
-            comment.textContent = '错×　再加油！！';
-            console.log('wrong');
+            correctAnswer = hanyu;
           }
 
+          if (answerString === correctAnswer) {
+
+            comment.textContent = '好！赞👍。';
+            seikaiSu++;
+            console.log('OK');
+          } else {
+            comment.textContent = '错！　再加油！！';
+            console.log('wrong');
+          }
+          speakData(comment);
         }
         //
       }
 
     }
-    // const checknext = document.getElementById('check-next');
-    // checknext.addEventListener('click', () => {
+    //
+    function setReTry() {
+      const totalGrade = document.querySelector('.totalGrade');
+      totalGrade.classList.add('totalGradeNoDisplay');
+      totalGrade.classList.remove('totalGradeDisplay');
+      container.remove();
+      container = document.createElement('div');
+      container.setAttribute('id', 'container');
+      main.appendChild(container);
 
+      renderQuestions(questions);
+      iniCSSSet();
+      cssIndex = 0;
+      swButton = false;
 
-
-
-
-
-
-    // iniCSSSet();
-
-
-
-
-    // 23-06-13 ------------------------------------------------------
-
+    }
 
 
 
@@ -776,12 +986,28 @@
       cssIndex = 0;
       var classElement = document.getElementsByClassName('dataContent');
       classElement[0].classList.add("dataDisplay");
+      if (classElement[0].classList.contains('dataNone')) {
+        classElement[i].classList.remove('dataNone');
+      }
       for (let i = 1; i < classElement.length; i++) {
         classElement[i].classList.add("dataNone");
       }
 
     }
-    
+    // イニシャル　書くシート用のCSS セット　　最初の問題に移る
+    function iniCSSSet2() {
+      cssIndex = 0;
+      var classElement = document.getElementsByClassName('dataContent');
+
+      for (let i = 0; i < classElement.length; i++) {
+        classElement[i].classList.add("dataNone");
+        if (classElement[i].classList.contains('ditaDisplay')) {
+          classElement[i].classElement.remove('dataDisplay');
+        }
+      }
+
+    }
+
   </script>
 </body>
 
